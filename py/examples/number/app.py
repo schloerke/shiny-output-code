@@ -2,7 +2,7 @@
 
 from shiny import App, Inputs, Outputs, Session, render, ui
 
-from shinycomponenttemplate import example_number_input
+from shinyoutputcode import example_number_input
 
 app_ui = ui.page_fluid(
     ui.h5("Number Input"),

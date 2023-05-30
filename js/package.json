@@ -1,9 +1,4 @@
 {
-  "name": "shiny-component-template",
-  "version": "0.0.1",
-  "description": "An example Shiny WebComponent",
-  "author": "Your Name",
-  "license": "MIT",
   "private": true,
   "devDependencies": {
     "@types/rstudio-shiny": "https://github.com/rstudio/shiny#v1.7.4",
@@ -17,10 +12,10 @@
     "prettier-plugin-organize-imports": "^3.2.2",
     "typescript": "^5.0.4"
   },
-  "scripts": {
-    "build": "esbuild src/example-number-input.ts --bundle --minify --sourcemap --outdir=out"
-  },
   "dependencies": {
     "lit": "^2.7.4"
+  },
+  "scripts": {
+    "build": "esbuild src/example-number-input.ts --bundle --minify --sourcemap --outdir=out"
   }
 }
