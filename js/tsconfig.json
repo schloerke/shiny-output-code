@@ -13,11 +13,18 @@
     "noUnusedParameters": false,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    "plugins": [
+      {
+        "name": "typescript-lit-html-plugin",
+        "tags": ["html", "template"]
+      }
+    ]
   },
-  "include": ["./src/**/*"],
+  "include": ["./src/**/*", "./scripts/**/*"],
   "exclude": ["node_modules"]
 }
