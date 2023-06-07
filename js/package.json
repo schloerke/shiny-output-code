@@ -17,6 +17,6 @@
     "lit": "^2.7.4"
   },
   "scripts": {
-    "build": "esbuild src/example-number-input.ts --bundle --minify --sourcemap --outdir=out"
+    "build": "esbuild src/shiny-output-code.ts --bundle --minify --sourcemap --outdir=out --out-extension:.js=.min.js"
   }
 }
