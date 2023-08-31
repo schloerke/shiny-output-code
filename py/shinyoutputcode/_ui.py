@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import PurePath
 
-from htmltools import HTMLDependency, Tag, TagAttrs, TagAttrValue, TagChild, div
+from htmltools import HTMLDependency, Tag, TagAttrs, TagAttrValue, TagChild
 
 from . import __version__
 
@@ -36,16 +36,8 @@ def output_code(
 
     return tag_shiny_output_code(
         {"id": id},
-        # div({"slot": "title"}),
-        # div({"slot": "copy-icon"}),
         *args,
         **kwargs,
-        # {
-        #     "id": id,
-        #     "copy-label": copy_label,
-        #     "language": language,
-        # },
-        # **kwargs,
     )
 
 
