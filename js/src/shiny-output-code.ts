@@ -1,5 +1,13 @@
+// TODO-future; This feels like title should be dropped.
+// Maybe only the code and copy button should be supported? Ex: https://getbootstrap.com/docs/4.5/components/tooltips/#example-enable-tooltips-everywhere
+// Or it should have a title. Ex: https://docs.github.com/en/actions/using-workflows/reusing-workflows#example-reusable-workflow
+
+// TODO-future: Display tooltip on hover of the copy button. Ex: https://getbootstrap.com/docs/4.5/components/tooltips/#example-enable-tooltips-everywhere
+// Related: https://stackoverflow.com/questions/61922807/how-to-make-js-tooltips-work-in-shadow-dom
+
+// TODO-future: Including the style tag in each code output is not ideal. If there are N code outputs, then there will be N copies of the style css file (assuming they used the same style name)
+
 import hljs from "highlight.js/lib/common";
-// import "highlight.js/styles";
 import { LitElement, RenderOptions, css, html } from "lit";
 import {
   customElement,
@@ -9,76 +17,63 @@ import {
 import {ifDefined} from "lit/directives/if-defined.js";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 
-// import { OutputBinding } from "rstudio-shiny/srcts/types/src/bindings";
-import type { ErrorsMessageValue } from "rstudio-shiny/srcts/types/src/shiny/shinyapp";
+import { currentScriptDir, dirname } from "./utils";
 
 // =============================================================================
 // Clipboard setup
 // =============================================================================
-// navigator.permissions.query({ name: "write-on-clipboard" }).then((result) => {
-//   if (result.state == "granted" || result.state == "prompt") {
-//     alert("Write access granted!");
-//   }
-// });
+let can_copy = false;
+// `clipboard-write` is not stable yet. https://developer.mozilla.org/en-US/docs/Web/API/Permissions_API
+navigator.permissions.query({name: "clipboard-write"}).then(result => {
+  // Clipboard permissions available
+  // alert("Clipboard permissions available")
+  can_copy = result.state === "granted" || result.state === "prompt";
+});
+
+async function copytoClipboard(txt: string) {
+  if (!can_copy) {
+    alert("Cannot copy to clipboard");
+    return;
+  }
+
+  await navigator.clipboard.writeText(txt);
+}
 
 // =============================================================================
 // WebComponent definition
 // =============================================================================
+
+const CODE_TO_HIGHLIGHT_CLASS = "code-to-highlight";
+const HTML_DEP_DIR = dirname(currentScriptDir())
 
 @customElement("shiny-output-code")
 export class OutputCodeElement extends LitElement {
   // @property({ type: String })
   // title: string;
 
-  @property({ type: String })
+  @property({ type: String, reflect: true })
   code: string | null = null;
-  @property({ type: String })
-  copyIcon: string | null = null;
 
-  @property({ type: String })
+  @property({ type: String, reflect: true })
   copyLabel: string | null = null;
-  @property({ type: String })
-  language: string | false = false;
 
-  // onChangeCallback = (x: boolean) => {};
+  @property({ type: String, reflect: true })
+  language: string | null = null;
 
-  // @queryAssignedElements({slot: 'list', selector: '.item'})
-  // _listItems!: Array<HTMLElement>;
-  get _title(): Element | null {
-    // const slot = this.shadowRoot?.querySelector('slot[name="title"]');
-    return this.querySelector(":scope > [slot='title']");
-    // if (!slot) return null;
-    // return (slot as HTMLSlotElement).assignedNodes({ flatten: true });
+  @property({ type: String, reflect: true })
+  styleName: string | null = null;
+
+  _hasCopyIcon(): boolean {
+    return this.querySelector(":scope > [slot='copy-icon']")?.hasChildNodes() || false;
   }
-
-  get _copyIcon(): Element | null {
-    return this.querySelector(":scope > [slot='copy-icon']");
-    // const slot = this.querySelector('slot[name="copy-icon"]');
-    // if (!slot) return null;
-    // return (slot as HTMLSlotElement).assignedNodes({ flatten: true });
-  }
-  // get _language(): string {
-  //   const lang =
-  //     this.querySelector(":scope > [slot='code']")?.getAttribute("language") ||
-  //     "auto";
-  //   return lang == "false" ? "nohighlight" : lang;
-  // }
-  // get _copyLabel(): string | null {
-  //   this._copyIcon?.getAttribute("aria-label");
-  //   return this.getAttribute("copy-label");
-  // }
-
-  // get _code(): string | null {
-  //   return this.querySelector(":scope > [slot='code']")?.textContent || null;
-  // }
 
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_class_fields
-  get _formattedCode(): string | null {
+  _formattedCode(): string | null {
     const lang = this.language;
-    const code = this.code;
+    // const code = this.code;
+    const code = this.code
     if (
-      lang === false ||
-      lang === "false" ||
+      lang === null ||
       lang === "nohighlight" ||
       code === null
     )
@@ -89,145 +84,55 @@ export class OutputCodeElement extends LitElement {
     return hljs.highlight(code, { language: lang }).value;
   }
 
-  // @queryAssignedNodes({slot: 'header', flatten: true})
-  // _headerNodes!: Array<Node>;
-  // The examples above are equivalent to the following code:
-
-  // get _listItems() {
-  //   const slot = this.shadowRoot.querySelector('slot[name=list]');
-  //   return slot.assignedElements().filter((node) => node.matches('.item'));
-  // }
-
-  // get _headerNodes() {
-  //   const slot = this.shadowRoot.querySelector('slot[name=header]');
-  //   return slot.assignedNodes({flatten: true});
-  // }
-
-  static styles = css`
-    /* input {
-      padding: var(--size-2);
-      border-radius: var(--radius-2);
-      font-size: var(--font-size-1);
-    }
-    input:invalid {
-      outline: var(--border-size-2) solid var(--red-10);
-    }
-    span {
-      display: inline-block;
-      font-size: var(--font-size-1);
-      font-weight: var(--font-weight-2);
-      color: var(--red-6);
-      transform: scaleX(0);
-      transition: transform 0.3s var(--ease-squish-2);
-      transform-origin: left;
-    }
-    input:invalid + span {
-      transform: scaleX(1);
-    } */
-  `;
-
-  // handleChange(e: InputEvent) {
-  //   window.console.log("handleChange", e);
-  //   // this.value = clamp(
-  //   //   (e.target as HTMLInputElement).valueAsNumber,
-  //   //   this.min,
-  //   //   this.max
-  //   // );
-
-  //   // // Tell the output binding we've changed
-  //   // this.onChangeCallback(true);
-  // }
   _copytoClipboard() {
-    window.console.log("copyToClipboard");
+    if (this.code !== null) {
+      copytoClipboard(this.code);
+    }
   }
 
+  static styles = css`  `;
+
+
   render() {
+
+    // Color theme
+    let styleLink = html``
+    let styleName = this.styleName || "default"
+    styleLink = html`<link rel="stylesheet" href="${HTML_DEP_DIR}/styles/${styleName}.css">`
+
+    // Copy button
+    let copy_button = html``
+    if (can_copy && this._hasCopyIcon())
+      copy_button = html`<button
+            class="js-btn-copy btn btn-sm"
+            data-clipboard-text="${ifDefined(this.code === null ? undefined : this.code)}"
+            aria-label="${ifDefined(this.copyLabel === null ? undefined : this.copyLabel)}"
+            data-toggle='tooltip'
+            @click="${this._copytoClipboard}"
+          >
+            <slot name="copy-icon"></slot>
+          </button>`
+
     return html`
+      ${styleLink}
       <div class="code-extra">
         <header
           class="d-flex flex-items-center flex-justify-between p-2 text-small rounded-top-1 border"
         >
           <slot name="title"></slot
-          ><button
-            class="js-btn-copy btn btn-sm tooltipped tooltipped-nw"
-
-            data-clipboard-text="${ifDefined(this.code === null ? undefined : this.code)}"
-            aria-label="${ifDefined(this.copyLabel)}"
-            @click="${this._copytoClipboard}"
-          >
-            <slot name="copy-icon"></slot>
-          </button>
+          >${copy_button}
         </header>
-        <pre><code>${unsafeHTML(this._formattedCode)}</code></pre>
-        <pre><code><slot name="code"></slot></code></pre>
+        <pre part="code"><code class="hljs language-${this.language}">${unsafeHTML(this._formattedCode())}</code></pre>
       </div>
-    `;
-
-    return html`
-      <div class="code-extra">
-        <header
-          class="d-flex flex-items-center flex-justify-between p-2 text-small rounded-top-1 border"
-        >
-          <span>${this.title}</span
-          ><button
-            class="js-btn-copy btn btn-sm tooltipped tooltipped-nw"
-            data-clipboard-text="${this._code}"
-            aria-label="${this._copyLabel}"
-          >
-            ${this._copyIcon}
-          </button>
-        </header>
-        <pre><code>${this._code}</code></pre>
-      </div>
-    `;
-
-    // @click="${this._copyToClipboard}"
-    const iconHtml = !this._copyIcon
-      ? ""
-      : html`
-          <button
-            class="js-btn-copy btn btn-sm tooltipped tooltipped-nw"
-            ${this._code ? 'data-clipboard-text="' + this._code + '"' : ""}
-            ${this._copyLabel ? 'aria-label="' + this._copyLabel + '"' : ""}
-          >
-            ${this._copyIcon}
-          </button>
-        `;
-
-    const titleHtml = !this._title ? "" : html` <span>${this._title}</span> `;
-    const headerHtml = !(titleHtml || iconHtml)
-      ? ""
-      : html`<header
-          class="d-flex flex-items-center flex-justify-between p-2 text-small rounded-top-1 border"
-        >
-          <span>${this._title}</span>
-          ${iconHtml}
-          <copy-to-clipboard-button a="b"></copy-to-clipboard-button>
-        </header> `;
-
-    const languageClass =
-      this._language == "false" ? "nohighlight" : "language-" + this._language;
-
-    const code = this._code ?? "";
-    const codeHtml =
-      this._language == false
-        ? code
-        : hljs.highlight(code, { language: this._language }).value;
-
-    return html`
-      <div class="code-extra">
-        ${headerHtml}
-        <pre><code>${codeHtml}</code></pre>
-      </div>
-    `;
+      `;
   }
 
   updated(changedProperties: Map<string, any>) {
-    window.console.log("updated", changedProperties);
-    if (changedProperties.has("_copyIcon")) {
-      window.console.warn("Should update icon info?")
-      // popperInstance.update();
-    }
+    // window.console.log("updated", changedProperties);
+
+    const copy_button = this.shadowRoot!.querySelector("[data-toggle='tooltip']")
+    if (copy_button) $(copy_button).tooltip()
+    // window.console.log(copy_button)
   }
 }
 
@@ -242,88 +147,42 @@ export class OutputCodeElement extends LitElement {
  */
 const Shiny: typeof window.Shiny | undefined = window.Shiny;
 
-if (Shiny) {
-  // class ExampleNumberInputBinding extends Shiny.InputBinding {
+type RenderValueData = {
+  code: string | null;
+  title: string | null;
+  language: string | null;
+  style: string | null;
+  copy_icon: string | null;
+  copy_label: string | null;
+}
 
+
+if (Shiny) {
   class OutputCodeBinding extends Shiny["OutputBinding"] {
     constructor() {
       super();
     }
 
     find(scope: HTMLElement): JQuery<HTMLElement> {
-      window.console.log(
-        "Finding shiny-output-code elements",
-        $(scope).find("shiny-output-code"),
-        this.getId($(scope).find("shiny-output-code").get(0)!)
-      );
       return $(scope).find("shiny-output-code");
     }
 
-    //   {
-    //     "code": get_val(code),
-    //     "title": get_val(title),
-    //     "copyIcon": get_val(copy_icon),
-    //     "language": str(language) if language else None,
-    // }
-
     renderValue(
       el: OutputCodeElement,
-      data: {
-        code?: string;
-        title?: string;
-        copy_icon?: string;
-        copy_label?: string;
-        language?: string;
-      } = {}
-      // data: string
+      data: RenderValueData = {code: null, title: null, language: null, style: null, copy_icon: null, copy_label: null, }
     ): void {
-      window.console.log("OutputCodeBinding.renderValue", el, "data: ", data);
-      // el.code = data;
-      // el.querySelector(":scope > code")!.textContent = data;
-      // el.onChangeCallback(true);
 
-      window.console.log(data.code)
+      // console.log("renderValue", el, data)
 
-      if (data.code) {
-        const codeSlot = el.querySelector(":scope > [slot='code']") as HTMLElement | null
-        window.console.log(codeSlot)
-        if (!codeSlot) {
-          const codeDiv = document.createElement("pre")
-          codeDiv.setAttribute("slot", "code")
-          el.appendChild(codeDiv)
-          codeDiv.innerText = data.code
-        } else {
-          codeSlot.innerText = data.code
-        }
-      }
-      if (data.title) {
-        const titleSlot = el.querySelector(":scope > [slot='title']")
-        if (!titleSlot) {
-          const titleDiv = document.createElement("div")
-          titleDiv.setAttribute("slot", "title")
-          el.appendChild(titleDiv)
-          titleDiv.innerHTML = data.title
-        } else {
-          titleSlot.innerHTML = data.title
-        }
-      }
-      if (data.copy_icon) {
-        const copyIconSlot = el.querySelector(":scope > [slot='copy-icon']")
-        if (!copyIconSlot) {
-          const copyIconDiv = document.createElement("div")
-          copyIconDiv.setAttribute("slot", "copy-icon")
-          el.appendChild(copyIconDiv)
-          copyIconDiv.innerHTML = data.copy_icon
-        } else {
-          copyIconSlot.innerHTML = data.copy_icon
-        }
-      }
-      if (data.copy_label) {
-        el.setAttribute("copy-label", data.copy_label)
-      }
-      if (data.language) {
-        el.setAttribute("language", data.language)
-      }
+      // Make slots if they don't already exist
+      update_slot(el, data, "title", "title")
+      update_slot(el, data, "copy_icon", "copy-icon")
+
+      // Update el properties
+      update_prop(el, data, "language", "language")
+      update_prop(el, data, "copy_label", "copyLabel")
+      update_prop(el, data, "style", "styleName")
+      update_prop(el, data, "code", "code")
     }
   }
   Shiny.outputBindings.register(new OutputCodeBinding(), "OutputCodeBinding");
@@ -343,3 +202,53 @@ if (Shiny) {
 //   template.innerHTML = x.trim();
 //   return template.content.firstChild as HTMLElement;
 // }
+
+// Updates the contents of the child element within el
+function set_slot(el: OutputCodeElement, attr_value: string, value: string | null) {
+  const attr_key = "slot"
+  const child_el_type = "div"
+  let childEl = el.querySelector(`:scope > [${attr_key}='${attr_value}']`) as HTMLElement | null;
+  if (!childEl) {
+    // Child is missing. Create it and set the innerHTML
+    childEl = document.createElement(child_el_type)
+    childEl.setAttribute(attr_key, attr_value)
+    el.appendChild(childEl)
+  }
+  // Child exists. Set the innerHTML
+  childEl.innerHTML = value || ""
+}
+
+// Removes the child slot element from el
+function remove_slot(el: OutputCodeElement, attr_value: string) {
+  const attr_key = "slot"
+  const childEl = el.querySelector(`:scope > [${attr_key}='${attr_value}']`) as HTMLElement | null;
+  if (childEl) {
+    el.removeChild(childEl)
+  }
+}
+
+
+// Either updates the child element within el, or removes it if value is null
+function update_slot(el: OutputCodeElement, data: RenderValueData, data_key: keyof RenderValueData, attr_value: string) {
+  // If the key doesn't exist. Don't touch the child el
+  if (!Object.hasOwn(data, data_key)) {
+    return
+  }
+  const value = data[data_key]
+  if (value === null) {
+    // If the key exists, but is null... Remove the child el
+    remove_slot(el, attr_value)
+  } else {
+    // If the key exists, update the child el
+    set_slot(el, attr_value, value)
+  }
+}
+
+// Updates the property of el
+function update_prop(el: OutputCodeElement, data: RenderValueData, data_key: keyof RenderValueData, el_prop: "language" | "copyLabel" | "styleName" | "code") {
+  // If the key doesn't exist. Don't touch the attr
+  if (!Object.hasOwn(data, data_key)) {
+    return
+  }
+  el[el_prop] = data[data_key]
+}
